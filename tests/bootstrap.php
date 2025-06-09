@@ -9,7 +9,8 @@
 // Load the composer autoloader.
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 
-require_once 'functions.php';
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound
+define( 'GATEWAYPAYPAL_TEST_MODE', true );
 
 // Bootstrap WP_Mock to initialize built-in features.
 WP_Mock::bootstrap();

@@ -5,7 +5,10 @@ parameters:
 	paths:
 		- src
 		- tests
-		- templates
-		- skeleton.php
 	excludePaths:
+		- tests/WP_Error.php
+		- packages
+		- vendor
 	ignoreErrors:
+		- '#Call to method getTransactionResponse\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
+		- '#Call to method getMessages\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
