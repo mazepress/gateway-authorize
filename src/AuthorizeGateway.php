@@ -108,9 +108,10 @@ class AuthorizeGateway extends Payment {
 		}
 
 		$card      = $this->get_card();
+		$expiry    = $card->get_expiry_month() . $card->get_expiry_year();
 		$card_type = new CreditCardType();
 		$card_type->setCardNumber( $card->get_number() );
-		$card_type->setExpirationDate( $card->get_expiry() );
+		$card_type->setExpirationDate( (string) $expiry );
 		$card_type->setCardCode( $card->get_cvv() );
 
 		// Set the payment type.
