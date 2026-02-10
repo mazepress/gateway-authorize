@@ -24,61 +24,62 @@ use net\authorize\api\contract\v1\SettingType;
 use net\authorize\api\contract\v1\TransactionRequestType;
 use net\authorize\api\controller\CreateTransactionController;
 use net\authorize\api\contract\v1\CreateTransactionResponse;
+use net\authorize\api\controller\base\IApiOperation;
 use WP_Error;
 
 /**
- * The AuthorizeGateway abstract class.
+ * The AuthorizeGateway class.
  */
 class AuthorizeGateway extends Payment {
 
 	/**
 	 * The public_key.
 	 *
-	 * @var string $public_key
+	 * @var string
 	 */
 	private $public_key;
 
 	/**
 	 * The private_key.
 	 *
-	 * @var string $private_key
+	 * @var string
 	 */
 	private $private_key;
 
 	/**
 	 * The live mode flag.
 	 *
-	 * @var bool $is_live
+	 * @var bool
 	 */
 	private $is_live = false;
 
 	/**
 	 * The capture mode flag.
 	 *
-	 * @var bool $capture
+	 * @var bool
 	 */
 	private $capture = true;
 
 	/**
 	 * The transaction ID.
 	 *
-	 * @var string $transaction_id
+	 * @var string
 	 */
 	private $transaction_id;
 
 	/**
 	 * The reference ID.
 	 *
-	 * @var string $reference_id
+	 * @var string
 	 */
 	private $reference_id;
 
 	/**
-	 * The API client object.
+	 * The controller object.
 	 *
-	 * @var CreateTransactionController $client
+	 * @var IApiOperation
 	 */
-	private $client;
+	private $controller;
 
 	/**
 	 * Initiate class.
@@ -97,42 +98,33 @@ class AuthorizeGateway extends Payment {
 	 * Process the payment. If the payment fails,
 	 * it should return a WP_Error object.
 	 *
-	 * @return Transaction|\WP_Error
+	 * @return Transaction|WP_Error
 	 */
 	public function process() {
 
-		// Validate the credentials.
+		// Validate credentials.
 		$validate = $this->validate_credentials();
 		if ( is_wp_error( $validate ) ) {
 			return $validate;
 		}
 
-		$card      = $this->get_card();
-		$expiry    = $card->get_expiry_month() . $card->get_expiry_year();
-		$card_type = new CreditCardType();
-		$card_type->setCardNumber( $card->get_number() );
-		$card_type->setExpirationDate( (string) $expiry );
-		$card_type->setCardCode( $card->get_cvv() );
-
-		// Set the payment type.
-		$payment = ( new PaymentType() )->setCreditCard( $card_type );
-
-		$address      = $this->get_address();
-		$full_address = (string) $address->get_address1();
-
-		if ( ! empty( $address->get_address2() ) ) {
-			$full_address .= ! empty( $full_address ) ? ', ' . $address->get_address2() : $address->get_address2();
+		// Check for amount.
+		if ( $this->get_amount() <= 0 ) {
+			return new WP_Error( 'error', __( 'Invalid amount.', 'gatewayauthorize' ) );
 		}
 
-		$billing = new CustomerAddressType();
-		$billing->setFirstName( $address->get_first_name() );
-		$billing->setLastName( $address->get_last_name() );
-		$billing->setEmail( $address->get_email() );
-		$billing->setPhoneNumber( (string) $address->get_phone() );
-		$billing->setAddress( $full_address );
-		$billing->setState( (string) $address->get_state() );
-		$billing->setZip( (string) $address->get_zip() );
-		$billing->setCountry( (string) $address->get_country_code() );
+		$credit_card = $this->get_card_type();
+		if ( empty( $credit_card ) ) {
+			return new WP_Error( 'error', __( 'Invalid credit card.', 'gatewayauthorize' ) );
+		}
+
+		// Set the payment type.
+		$payment = ( new PaymentType() )->setCreditCard( $credit_card );
+
+		$billing = $this->get_address_type();
+		if ( empty( $billing ) ) {
+			return new WP_Error( 'error', __( 'Invalid billing address.', 'gatewayauthorize' ) );
+		}
 
 		$transaction_request = ( new TransactionRequestType() )
 			->setCurrencyCode( $this->get_currency_code() )
@@ -146,7 +138,7 @@ class AuthorizeGateway extends Payment {
 		$transaction_request->setCustomer(
 			( new CustomerDataType() )
 				->setType( 'individual' )
-				->setEmail( $address->get_email() )
+				->setEmail( $billing->getEmail() )
 		);
 
 		if ( ! empty( $this->get_invoice_id() ) ) {
@@ -168,13 +160,13 @@ class AuthorizeGateway extends Payment {
 	/**
 	 * Capture the previously holding payment.
 	 *
-	 * @return Transaction|\WP_Error
+	 * @return Transaction|WP_Error
 	 */
 	public function capture() {
 
 		// Check the transaction ID.
 		if ( empty( $this->get_transaction_id() ) ) {
-			return new \WP_Error( 'error', __( 'Invalid transaction ID.', 'gatewayauthorize' ) );
+			return new WP_Error( 'error', __( 'Invalid transaction ID.', 'gatewayauthorize' ) );
 		}
 
 		$transaction_request = ( new TransactionRequestType() )
@@ -195,9 +187,9 @@ class AuthorizeGateway extends Payment {
 	 *
 	 * @param TransactionRequestType $transaction_request The transaction request.
 	 *
-	 * @return Transaction|\WP_Error
+	 * @return Transaction|WP_Error
 	 */
-	private function process_transaction( TransactionRequestType $transaction_request ) {
+	public function process_transaction( TransactionRequestType $transaction_request ) {
 
 		$transaction_request->addToTransactionSettings(
 			( new SettingType() )
@@ -217,19 +209,23 @@ class AuthorizeGateway extends Payment {
 			$request->setRefId( $this->get_reference_id() );
 		}
 
-		$client = ! is_null( $this->get_client() ) ? $this->get_client() : new CreateTransactionController( $request );
+		$controller = $this->get_controller();
+
+		if ( empty( $controller ) || ! $controller instanceof CreateTransactionController ) {
+			$controller = new CreateTransactionController( $request );
+		}
 
 		try {
-			$response = $client->executeWithApiResponse( $this->get_endpoint() );
+			$response = $controller->executeWithApiResponse( $this->get_endpoint() );
 
 			if ( ! $response instanceof CreateTransactionResponse ) {
-				return new \WP_Error( 'error', __( 'No response received from the API.', 'gatewayauthorize' ) );
+				return new WP_Error( 'error', __( 'No response received from the API.', 'gatewayauthorize' ) );
 			}
 
 			$tresponse = $response->getTransactionResponse();
 
 		} catch ( \Exception $ex ) {
-			return new \WP_Error( 'error', $ex->getMessage() );
+			return new WP_Error( 'error', $ex->getMessage() );
 		}
 
 		if ( 'Ok' !== $response->getMessages()->getResultCode() ) {
@@ -238,11 +234,11 @@ class AuthorizeGateway extends Payment {
 				? $tresponse->getErrors()[0]->getErrorText()
 				: $response->getMessages()->getMessage()[0]->getText();
 
-			return new \WP_Error( 'error', $message );
+			return new WP_Error( 'error', $message );
 		}
 
 		if ( 1 !== (int) $tresponse->getResponseCode() ) {
-			return new \WP_Error( 'error', __( 'Failed processing the payment!', 'gatewayauthorize' ) );
+			return new WP_Error( 'error', __( 'Failed processing the payment!', 'gatewayauthorize' ) );
 		}
 
 		$transaction = ( new Transaction() )
@@ -256,44 +252,84 @@ class AuthorizeGateway extends Payment {
 	/**
 	 * Valdiate the minimum requirements.
 	 *
-	 * @return bool|\WP_Error
+	 * @return bool|WP_Error
 	 */
-	private function validate_credentials() {
+	public function validate_credentials() {
 
 		// Check the public key.
 		if ( empty( $this->get_public_key() ) ) {
-			return new \WP_Error( 'invalid_public_key', __( 'Invalid public key.', 'gatewayauthorize' ) );
+			return new WP_Error( 'error', __( 'Invalid public key.', 'gatewayauthorize' ) );
 		}
 
 		// Check the private key.
 		if ( empty( $this->get_private_key() ) ) {
-			return new \WP_Error( 'invalid_private_key', __( 'Invalid private key.', 'gatewayauthorize' ) );
-		}
-
-		// Check the amount.
-		$amount = $this->get_amount();
-		if ( $amount <= 0 ) {
-			return new \WP_Error( 'invalid_amount', __( 'Invalid amount.', 'gatewayauthorize' ) );
-		}
-
-		// Check the card.
-		$card = $this->get_card();
-		if ( is_null( $card ) ) {
-			return new \WP_Error( 'invalid_card', __( 'Invalid credit card.', 'gatewayauthorize' ) );
-		}
-
-		// Check the address.
-		$address = $this->get_address();
-		if (
-			is_null( $address )
-			|| is_null( $address->get_first_name() )
-			|| is_null( $address->get_last_name() )
-			|| is_null( $address->get_email() )
-		) {
-			return new \WP_Error( 'invalid_address', __( 'Invalid billing address.', 'gatewayauthorize' ) );
+			return new WP_Error( 'error', __( 'Invalid private key.', 'gatewayauthorize' ) );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get the card type object.
+	 *
+	 * @return CreditCardType|null
+	 */
+	public function get_card_type(): ?CreditCardType {
+
+		if (
+			empty( $this->get_card() ) ||
+			empty( $this->get_card()->get_number() ) ||
+			empty( $this->get_card()->get_expiry_month() ) ||
+			empty( $this->get_card()->get_expiry_year() )
+		) {
+			return null;
+		}
+
+		$card = $this->get_card();
+
+		$card_type = new CreditCardType();
+		$card_type->setCardNumber( $card->get_number() );
+		$card_type->setCardCode( $card->get_cvv() );
+		$card_type->setExpirationDate( $card->get_expiry_year() . '-' . $card->get_expiry_month() );
+
+		return $card_type;
+	}
+
+	/**
+	 * Get the address type object.
+	 *
+	 * @return CustomerAddressType|null
+	 */
+	public function get_address_type(): ?CustomerAddressType {
+
+		// Check for address.
+		if (
+			empty( $this->get_address() ) ||
+			empty( $this->get_address()->get_first_name() ) ||
+			empty( $this->get_address()->get_last_name() ) ||
+			empty( $this->get_address()->get_email() )
+		) {
+			return null;
+		}
+
+		$address      = $this->get_address();
+		$full_address = (string) $address->get_address1();
+
+		if ( ! empty( $address->get_address2() ) ) {
+			$full_address .= ! empty( $full_address ) ? ', ' . $address->get_address2() : $address->get_address2();
+		}
+
+		$address_type = new CustomerAddressType();
+		$address_type->setFirstName( $address->get_first_name() );
+		$address_type->setLastName( $address->get_last_name() );
+		$address_type->setEmail( $address->get_email() );
+		$address_type->setPhoneNumber( (string) $address->get_phone() );
+		$address_type->setAddress( $full_address );
+		$address_type->setState( (string) $address->get_state() );
+		$address_type->setZip( (string) $address->get_zip() );
+		$address_type->setCountry( (string) $address->get_country_code() );
+
+		return $address_type;
 	}
 
 	/**
@@ -432,23 +468,23 @@ class AuthorizeGateway extends Payment {
 	}
 
 	/**
-	 * Get the API client.
+	 * Get the controller.
 	 *
-	 * @return CreateTransactionController|null
+	 * @return IApiOperation|null
 	 */
-	public function get_client(): ?CreateTransactionController {
-		return $this->client;
+	public function get_controller(): ?IApiOperation {
+		return $this->controller;
 	}
 
 	/**
-	 * Set the API client.
+	 * Set the controller.
 	 *
-	 * @param CreateTransactionController $client The API client.
+	 * @param IApiOperation $controller The controller.
 	 *
 	 * @return self
 	 */
-	public function set_client( CreateTransactionController $client ): self {
-		$this->client = $client;
+	public function set_controller( IApiOperation $controller ): self {
+		$this->controller = $controller;
 		return $this;
 	}
 }

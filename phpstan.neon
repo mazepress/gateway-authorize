@@ -11,4 +11,7 @@ parameters:
 		- vendor
 	ignoreErrors:
 		- '#Call to method getTransactionResponse\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
+		- '#Call to method getCustomerProfileId\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
+		- '#Call to method getCustomerPaymentProfileId\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
+		- '#Call to method getCustomerPaymentProfileIdList\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'
 		- '#Call to method getMessages\(\) on an unknown class net\\authorize\\api\\contract\\v1\\AnetApiResponseType.#'

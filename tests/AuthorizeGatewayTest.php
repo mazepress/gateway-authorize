@@ -82,33 +82,15 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		// Check for valid public_key.
 		$output = $method->invoke( $object );
-		$this->assertInstanceOf( \WP_Error::class, $output );
-		$this->assertEquals( 'invalid_public_key', $output->get_error_code() );
+		$this->assertInstanceOf( WP_Error::class, $output );
+		$this->assertEquals( 'error', $output->get_error_code() );
 		$object->set_public_key( 'public1' );
 
 		// Check for valid private_key.
 		$output = $method->invoke( $object );
-		$this->assertInstanceOf( \WP_Error::class, $output );
-		$this->assertEquals( 'invalid_private_key', $output->get_error_code() );
+		$this->assertInstanceOf( WP_Error::class, $output );
+		$this->assertEquals( 'error', $output->get_error_code() );
 		$object->set_private_key( 'private1' );
-
-		// Check for valid address.
-		$output = $method->invoke( $object );
-		$this->assertInstanceOf( \WP_Error::class, $output );
-		$this->assertEquals( 'invalid_amount', $output->get_error_code() );
-		$object->set_amount( 100 );
-
-		// Check for valid card.
-		$output = $method->invoke( $object );
-		$this->assertInstanceOf( \WP_Error::class, $output );
-		$this->assertEquals( 'invalid_card', $output->get_error_code() );
-		$object->set_card( new CreditCard() );
-
-		// Check for valid address.
-		$output = $method->invoke( $object );
-		$this->assertInstanceOf( \WP_Error::class, $output );
-		$this->assertEquals( 'invalid_address', $output->get_error_code() );
-		$object->set_address( $this->get_address() );
 
 		// Check for valid return.
 		$output = $method->invoke( $object );
@@ -124,7 +106,7 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( '', '', false );
 		$output = $object->process();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 	}
 
 	/**
@@ -136,23 +118,23 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_amount( 100 );
+		$object->set_card( $this->get_card() );
 		$object->set_reference_id( uniqid() );
-		$object->set_card( new CreditCard() );
 		$object->set_address( $this->get_address() );
 
-		$client  = Mockery::mock( CreateTransactionController::class );
-		$message = 'An error occurred!';
+		$controller = Mockery::mock( CreateTransactionController::class );
+		$message    = 'An error occurred!';
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andThrow( new \Exception( $message ) );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->process();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 		$this->assertEquals( 'error', $output->get_error_code() );
 		$this->assertEquals( $message, $output->get_error_message() );
 	}
@@ -166,21 +148,21 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_amount( 100 );
-		$object->set_card( new CreditCard() );
+		$object->set_card( $this->get_card() );
 		$object->set_address( $this->get_address() );
 
-		$client = Mockery::mock( CreateTransactionController::class );
+		$controller = Mockery::mock( CreateTransactionController::class );
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( null );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->process();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 		$this->assertEquals( 'error', $output->get_error_code() );
 		$this->assertEquals( 'No response received from the API.', $output->get_error_message() );
 	}
@@ -194,11 +176,11 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_amount( 100 );
-		$object->set_card( new CreditCard() );
+		$object->set_card( $this->get_card() );
 		$object->set_address( $this->get_address() );
 
-		$client   = Mockery::mock( CreateTransactionController::class );
-		$response = new CreateTransactionResponse();
+		$controller = Mockery::mock( CreateTransactionController::class );
+		$response   = new CreateTransactionResponse();
 
 		$tresponse = new TransactionResponseType();
 		$response->setTransactionResponse( $tresponse );
@@ -211,15 +193,15 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$response->setMessages( $messages );
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->process();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 		$this->assertEquals( 'error', $output->get_error_code() );
 		$this->assertEquals( $message->getText(), $output->get_error_message() );
 	}
@@ -233,11 +215,11 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_amount( 100 );
-		$object->set_card( new CreditCard() );
+		$object->set_card( $this->get_card() );
 		$object->set_address( $this->get_address() );
 
-		$client   = Mockery::mock( CreateTransactionController::class );
-		$response = new CreateTransactionResponse();
+		$controller = Mockery::mock( CreateTransactionController::class );
+		$response   = new CreateTransactionResponse();
 
 		$tresponse = new TransactionResponseType();
 		$response->setTransactionResponse( $tresponse );
@@ -250,15 +232,15 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$response->setMessages( $messages );
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->process();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 		$this->assertEquals( 'error', $output->get_error_code() );
 		$this->assertEquals( $message->getText(), $output->get_error_message() );
 	}
@@ -272,13 +254,13 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_amount( 100 );
-		$object->set_card( new CreditCard() );
+		$object->set_card( $this->get_card() );
 		$object->set_address( $this->get_address() );
 		$object->set_invoice_id( uniqid() );
 
-		$transid  = uniqid();
-		$client   = Mockery::mock( CreateTransactionController::class );
-		$response = new CreateTransactionResponse();
+		$transid    = uniqid();
+		$controller = Mockery::mock( CreateTransactionController::class );
+		$response   = new CreateTransactionResponse();
 
 		$tmessage  = ( new \net\authorize\api\contract\v1\TransactionResponseType\MessagesAType\MessageAType() )
 			->setDescription( 'Approved payment!' );
@@ -293,12 +275,12 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$response->setMessages( $messages );
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->process();
 		$this->assertInstanceOf( Transaction::class, $output );
@@ -316,7 +298,7 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 
 		$output = $object->capture();
-		$this->assertInstanceOf( \WP_Error::class, $output );
+		$this->assertInstanceOf( WP_Error::class, $output );
 		$this->assertEquals( 'error', $output->get_error_code() );
 		$this->assertEquals( 'Invalid transaction ID.', $output->get_error_message() );
 	}
@@ -331,9 +313,9 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$object = new AuthorizeGateway( 'public1', 'private1', false );
 		$object->set_transaction_id( uniqid() );
 
-		$transid  = uniqid();
-		$client   = Mockery::mock( CreateTransactionController::class );
-		$response = new CreateTransactionResponse();
+		$transid    = uniqid();
+		$controller = Mockery::mock( CreateTransactionController::class );
+		$response   = new CreateTransactionResponse();
 
 		$tmessage  = ( new \net\authorize\api\contract\v1\TransactionResponseType\MessagesAType\MessageAType() )
 			->setDescription( 'Approved payment!' );
@@ -348,12 +330,12 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$response->setMessages( $messages );
 
 		// @phpstan-ignore-next-line
-		$client->shouldReceive( 'executeWithApiResponse' )
+		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
 
 		// @phpstan-ignore-next-line
-		$object->set_client( $client );
+		$object->set_controller( $controller );
 
 		$output = $object->capture();
 		$this->assertInstanceOf( Transaction::class, $output );
@@ -362,19 +344,29 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 	}
 
 	/**
+	 * Get the dummy card
+	 *
+	 * @return CreditCard
+	 */
+	private function get_card(): CreditCard {
+		return ( new CreditCard() )
+			->set_number( '4111111111111111' )
+			->set_expiry_month( '01' )
+			->set_expiry_year( '2050' )
+			->set_cvv( '123' );
+	}
+
+	/**
 	 * Get the dummy address
 	 *
 	 * @return Address
 	 */
 	private function get_address(): Address {
-
-		$address = ( new Address() )
+		return ( new Address() )
 			->set_first_name( 'First' )
 			->set_last_name( 'Last' )
 			->set_email( 'firstlast@example.com' )
 			->set_address1( 'Second street' )
 			->set_address2( 'Down town' );
-
-		return $address;
 	}
 }
