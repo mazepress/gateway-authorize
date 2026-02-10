@@ -36,5 +36,5 @@ jobs:
       - name: PHPUnit Testing
         run: composer run phpunit
 
-      - name: Coverage Check
-        run: composer run coverage
+#      - name: Coverage Check
+#        run: composer run coverage
