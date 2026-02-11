@@ -23,6 +23,13 @@ class Customer {
 	private $profile_id;
 
 	/**
+	 * The payment profile ID.
+	 *
+	 * @var string
+	 */
+	private $payment_profile_id;
+
+	/**
 	 * The payment profile IDs.
 	 *
 	 * @var string[]
@@ -47,6 +54,27 @@ class Customer {
 	 */
 	public function set_profile_id( string $profile_id ): self {
 		$this->profile_id = $profile_id;
+		return $this;
+	}
+
+	/**
+	 * Get payment profile ID.
+	 *
+	 * @return string|null
+	 */
+	public function get_payment_profile_id(): ?string {
+		return $this->payment_profile_id;
+	}
+
+	/**
+	 * Set payment profile ID.
+	 *
+	 * @param string $payment_profile_id The profile ID.
+	 *
+	 * @return self
+	 */
+	public function set_payment_profile_id( string $payment_profile_id ): self {
+		$this->payment_profile_id = $payment_profile_id;
 		return $this;
 	}
 

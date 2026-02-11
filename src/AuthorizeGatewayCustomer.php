@@ -184,10 +184,11 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 	 * Create customer profile from transaction ID.
 	 *
 	 * @param string $transaction_id The transaction ID.
+	 * @param string $email          The customer email.
 	 *
 	 * @return Customer|WP_Error
 	 */
-	public function create_profile_from_transaction( string $transaction_id ) {
+	public function create_profile_from_transaction( string $transaction_id, string $email ) {
 
 		// Validate credentials.
 		$validate = $this->validate_credentials();
@@ -201,7 +202,7 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 		}
 
 		$customer_profile = new CustomerProfileBaseType();
-		$customer_profile->setEmail( $this->get_address()->get_email() );
+		$customer_profile->setEmail( $email );
 
 		$request = new CreateCustomerProfileFromTransactionRequest();
 		$request->setTransId( $transaction_id );
@@ -326,7 +327,7 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 
 		$customer = ( new Customer() )
 			->set_profile_id( $profile_id )
-			->append_payment_profile_ids( $payment_profile_id );
+			->set_payment_profile_id( $payment_profile_id );
 
 		return $customer;
 	}
