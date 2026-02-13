@@ -135,11 +135,8 @@ class AuthorizeGateway extends Payment {
 		$trans_type = $this->get_capture() ? 'authCaptureTransaction' : 'authOnlyTransaction';
 		$transaction_request->setTransactionType( $trans_type );
 
-		$transaction_request->setCustomer(
-			( new CustomerDataType() )
-				->setType( 'individual' )
-				->setEmail( $billing->getEmail() )
-		);
+		// Set the customer.
+		$transaction_request->setCustomer( ( new CustomerDataType() )->setEmail( $billing->getEmail() ) );
 
 		if ( ! empty( $this->get_invoice_id() ) ) {
 			$transaction_request->setOrder(
