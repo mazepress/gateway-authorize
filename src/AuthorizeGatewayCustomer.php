@@ -128,7 +128,6 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 
 		// Create a new Customer Payment Profile object.
 		$payment_profile = new CustomerPaymentProfileType();
-		$payment_profile->setCustomerType( 'individual' );
 		$payment_profile->setBillTo( $billing );
 		$payment_profile->setPayment( $payment );
 		$payment_profile->setDefaultPaymentProfile( true );

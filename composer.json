@@ -25,6 +25,12 @@
 		"teqnomaze/code-coverage": "^1.0"
 	},
 	"scripts": {
+    "testall": [
+      "@phpcs",
+      "@phpstan",
+      "@phpunit",
+      "@coverage"
+    ],
 		"phpcs": "./vendor/bin/phpcs --standard=phpcs.xml",
 		"phpcbf": "./vendor/bin/phpcbf src tests",
 		"phpstan": "./vendor/bin/phpstan analyse -c phpstan.neon --memory-limit 2G",
