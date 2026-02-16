@@ -103,9 +103,11 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 	/**
 	 * Create customer profile from transaction ID.
 	 *
+	 * @param bool $default Make the payment profile default.
+	 *
 	 * @return Customer|WP_Error
 	 */
-	public function create_profile() {
+	public function create_profile( bool $default = false ) {
 
 		// Validate credentials.
 		$validate = $this->validate_credentials();
@@ -130,7 +132,7 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 		$payment_profile = new CustomerPaymentProfileType();
 		$payment_profile->setBillTo( $billing );
 		$payment_profile->setPayment( $payment );
-		$payment_profile->setDefaultPaymentProfile( true );
+		$payment_profile->setDefaultPaymentProfile( $default );
 
 		// Create a new CustomerProfileType and add the payment profile object.
 		$customer_profile = new CustomerProfileType();
@@ -254,7 +256,7 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 	 *
 	 * @return Customer|WP_Error
 	 */
-	public function create_payment_profile( string $profile_id, bool $default = true ) {
+	public function create_payment_profile( string $profile_id, bool $default = false ) {
 
 		// Validate credentials.
 		$validate = $this->validate_credentials();
@@ -340,7 +342,7 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 	 *
 	 * @return true|WP_Error
 	 */
-	public function update_payment_profile( string $profile_id, string $payment_profile_id, bool $default = true ) {
+	public function update_payment_profile( string $profile_id, string $payment_profile_id, bool $default = false ) {
 
 		// Check for amount.
 		if ( empty( $profile_id ) || empty( $payment_profile_id ) ) {
