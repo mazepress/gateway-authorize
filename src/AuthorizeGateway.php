@@ -140,7 +140,9 @@ class AuthorizeGateway extends Payment {
 
 		if ( ! empty( $this->get_invoice_id() ) ) {
 			$transaction_request->setOrder(
-				( new OrderType() )->setInvoiceNumber( $this->get_invoice_id() )
+				( new OrderType() )
+					->setInvoiceNumber( $this->get_invoice_id() )
+					->setDescription( (string) $this->get_description() )
 			);
 		}
 
