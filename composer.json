@@ -13,7 +13,7 @@
 		"php": "^7.4 | ^8.2",
 		"authorizenet/authorizenet": "^2.0",
 		"composer/installers": "^2.3",
-		"mazepress/gateway": "^1.3"
+		"mazepress/gateway": "^1.4"
 	},
 	"require-dev": {
 		"phpcompatibility/phpcompatibility-wp": "^2.1.7",
