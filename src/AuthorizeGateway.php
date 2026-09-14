@@ -229,14 +229,14 @@ class AuthorizeGateway extends Payment {
 
 		if ( 'Ok' !== $response->getMessages()->getResultCode() ) {
 
-			$message = ! empty( $tresponse->getErrors() )
+			$message = ( ! empty( $tresponse ) && ! empty( $tresponse->getErrors() ) )
 				? $tresponse->getErrors()[0]->getErrorText()
 				: $response->getMessages()->getMessage()[0]->getText();
 
 			return new WP_Error( 'error', $message );
 		}
 
-		if ( 1 !== (int) $tresponse->getResponseCode() ) {
+		if ( empty( $tresponse ) || 1 !== (int) $tresponse->getResponseCode() ) {
 			return new WP_Error( 'error', __( 'Failed processing the payment!', 'gatewayauthorize' ) );
 		}
 
