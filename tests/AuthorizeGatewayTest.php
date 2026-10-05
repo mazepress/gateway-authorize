@@ -125,7 +125,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 		$controller = Mockery::mock( CreateTransactionController::class );
 		$message    = 'An error occurred!';
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andThrow( new \Exception( $message ) );
@@ -153,7 +152,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 
 		$controller = Mockery::mock( CreateTransactionController::class );
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( null );
@@ -192,7 +190,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 			->setMessage( array( $message ) );
 		$response->setMessages( $messages );
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
@@ -231,7 +228,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 			->setMessage( array( $message ) );
 		$response->setMessages( $messages );
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
@@ -274,7 +270,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 			->setResultCode( 'Ok' );
 		$response->setMessages( $messages );
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );
@@ -329,7 +324,6 @@ class AuthorizeGatewayTest extends WP_Mock\Tools\TestCase {
 			->setResultCode( 'Ok' );
 		$response->setMessages( $messages );
 
-		// @phpstan-ignore-next-line
 		$controller->shouldReceive( 'executeWithApiResponse' )
 			->once()
 			->andReturn( $response );

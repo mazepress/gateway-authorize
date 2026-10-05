@@ -79,7 +79,8 @@ class AuthorizeGatewayCustomer extends AuthorizeGateway {
 		$transaction_request = ( new TransactionRequestType() )
 			->setCurrencyCode( $this->get_currency_code() )
 			->setAmount( $this->get_amount() )
-			->setProfile( $customer_profile );
+			->setProfile( $customer_profile )
+			->setCustomerIP( $this->get_customer_ip() );
 
 		$trans_type = $this->get_capture() ? 'authCaptureTransaction' : 'authOnlyTransaction';
 		$transaction_request->setTransactionType( $trans_type );

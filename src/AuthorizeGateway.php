@@ -130,7 +130,8 @@ class AuthorizeGateway extends Payment {
 			->setCurrencyCode( $this->get_currency_code() )
 			->setAmount( $this->get_amount() )
 			->setPayment( $payment )
-			->setBillTo( $billing );
+			->setBillTo( $billing )
+			->setCustomerIP( $this->get_customer_ip() );
 
 		$trans_type = $this->get_capture() ? 'authCaptureTransaction' : 'authOnlyTransaction';
 		$transaction_request->setTransactionType( $trans_type );
@@ -170,7 +171,8 @@ class AuthorizeGateway extends Payment {
 
 		$transaction_request = ( new TransactionRequestType() )
 			->setTransactionType( 'priorAuthCaptureTransaction' )
-			->setRefTransId( $this->get_transaction_id() );
+			->setRefTransId( $this->get_transaction_id() )
+			->setCustomerIP( $this->get_customer_ip() );
 
 		$transaction = $this->process_transaction( $transaction_request );
 
@@ -329,6 +331,25 @@ class AuthorizeGateway extends Payment {
 		$address_type->setCountry( (string) $address->get_country_code() );
 
 		return $address_type;
+	}
+
+	/**
+	 * Get the customer IP address.
+	 *
+	 * @return string|null
+	 */
+	public function get_customer_ip(): ?string {
+
+		$customer_ip = ! empty( $_SERVER['REMOTE_ADDR'] )
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
+
+		$customer_ip = ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) )
+			: $customer_ip;
+
+		return $customer_ip;
 	}
 
 	/**
